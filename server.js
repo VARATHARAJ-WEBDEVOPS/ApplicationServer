@@ -10,21 +10,26 @@ const appsDirectory = path.join(__dirname, 'apps');
 
 // Endpoint to receive uploads
 app.post('/upload', upload.single('file'), async (req, res) => {
-  const { appId } = req.body;
+  const { appId, filePath } = req.body;
 
-  if (!appId) {
-    return res.status(400).send({ error: 'Application ID is required' });
+  if (!appId || !filePath) {
+    return res.status(400).send({ error: 'Application ID and file path are required' });
   }
 
   const appDir = path.join(appsDirectory, appId);
+  const fileDir = path.dirname(filePath); // Get the directory from the filePath
 
   try {
-    // Create app directory if it doesn't exist
+    // Create the app directory if it doesn't exist
     await fs.promises.mkdir(appDir, { recursive: true });
 
-    // Move the uploaded file to the app directory
+    // Create the target directory inside the app folder (to preserve folder structure)
+    const targetDir = path.join(appDir, fileDir);
+    await fs.promises.mkdir(targetDir, { recursive: true });
+
+    // Move the uploaded file to the target directory
     const tempFilePath = req.file.path;
-    const destinationPath = path.join(appDir, req.file.originalname);
+    const destinationPath = path.join(targetDir, req.file.originalname);
 
     await fs.promises.rename(tempFilePath, destinationPath);
 
